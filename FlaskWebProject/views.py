@@ -67,7 +67,7 @@ def login():
         user = User.query.filter_by(username=form.username.data).first()
         if user is None or not user.check_password(form.password.data):
             flash('Invalid username or password')
-            app.logger.warning("Authentication error: Invalid Loging")
+            app.logger.warning("Authentication error: Invalid username or password")
             return redirect(url_for('login'))
         login_user(user, remember=form.remember_me.data)
         next_page = request.args.get('next')
@@ -107,6 +107,7 @@ def authorized():
 @app.route('/logout')
 def logout():
     logout_user()
+    app.logger.info('User logged out!')
     if session.get("user"): # Used MS Login
         # Wipe out user and its token cache from session
         session.clear()
@@ -114,7 +115,6 @@ def logout():
         return redirect(
             Config.AUTHORITY + "/oauth2/v2.0/logout" +
             "?post_logout_redirect_uri=" + url_for("login", _external=True))
-    app.logger.info('User logged out!')
     return redirect(url_for('login'))
 
 def _load_cache():

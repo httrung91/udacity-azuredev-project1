@@ -9,9 +9,10 @@ from flask_login import LoginManager
 from flask_session import Session
 
 app = Flask(__name__)
-app.logger.setLevel(logging.INFO)
+wsgi_app = app.wsgi_app
+app.logger.setLevel(logging.WARNING)
 streamHandler = logging.StreamHandler()
-streamHandler.setLevel(logging.INFO)
+streamHandler.setLevel(logging.WARNING)
 app.logger.addHandler(streamHandler)
 
 app.config.from_object(Config)

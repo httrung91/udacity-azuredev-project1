@@ -67,11 +67,13 @@ def login():
         user = User.query.filter_by(username=form.username.data).first()
         if user is None or not user.check_password(form.password.data):
             flash('Invalid username or password')
+            app.logger.warning("Authentication error: Invalid Loging")
             return redirect(url_for('login'))
         login_user(user, remember=form.remember_me.data)
         next_page = request.args.get('next')
         if not next_page or url_parse(next_page).netloc != '':
             next_page = url_for('home')
+        app.logger.info('Authentication Successful: ' + str(user) + ' logged in!')
         return redirect(next_page)
     session["state"] = str(uuid.uuid4())
     auth_url = _build_auth_url(scopes=Config.SCOPE, state=session["state"])
@@ -82,6 +84,7 @@ def authorized():
     if request.args.get('state') != session.get("state"):
         return redirect(url_for("home"))  # No-OP. Goes back to Index page
     if "error" in request.args:  # Authentication/Authorization failure
+        app.logger.warning("Authentication error: Az Login Error")
         return render_template("auth_error.html", result=request.args)
     if request.args.get('code'):
         cache = _load_cache()
@@ -90,7 +93,7 @@ def authorized():
             scopes=Config.SCOPE,
             redirect_uri=url_for('authorized', _external=True, _scheme='https'))
         if "error" in result:
-            app.logger.warning("Authentication error: Invalid Loging")
+            app.logger.warning("Authentication error: Az Login Error")
             return render_template("auth_error.html", result=result)
         session["user"] = result.get("id_token_claims")
         # Note: In a real app, we'd use the 'name' property from session["user"] below
@@ -98,7 +101,7 @@ def authorized():
         user = User.query.filter_by(username="admin").first()
         login_user(user)
         _save_cache(cache)
-        app.logger.warning('Authentication Successful: ' + str(user) + ' logged in!')
+        app.logger.info('Authentication Successful: ' + str(user) + ' logged in!')
     return redirect(url_for('home'))
 
 @app.route('/logout')
@@ -111,7 +114,7 @@ def logout():
         return redirect(
             Config.AUTHORITY + "/oauth2/v2.0/logout" +
             "?post_logout_redirect_uri=" + url_for("login", _external=True))
-    app.logger.warning('User logged out!')
+    app.logger.info('User logged out!')
     return redirect(url_for('login'))
 
 def _load_cache():
